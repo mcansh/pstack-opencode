@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED = {'.git', '.pstack', 'node_modules', '__pycache__'}
+RUNTIME_FILES = {'.opencode/.gitignore', '.opencode/package.json', '.opencode/package-lock.json', '.opencode/bun.lock'}
 POINTER = 'Read [OpenCode runtime contract](../opencode-runtime.md) before executing this skill. It governs tools, models, settings, history, delegation, and authorization in all referenced files.\n'
 
 
@@ -36,7 +37,7 @@ def files(root):
     result = {}
     for path in sorted(root.rglob('*')):
         relative = path.relative_to(root)
-        if any(part in EXCLUDED for part in relative.parts):
+        if any(part in EXCLUDED for part in relative.parts) or relative.as_posix() in RUNTIME_FILES:
             continue
         if path.is_symlink():
             raise ValueError(f'Symlink is not supported: {path}')

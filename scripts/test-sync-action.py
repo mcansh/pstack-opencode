@@ -100,6 +100,30 @@ class SyncActionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Working source changed'):
             self.verify()
 
+    def test_opencode_runtime_files_are_preserved_and_never_exported(self):
+        runtime_paths = ('.opencode/.gitignore', '.opencode/package.json', '.opencode/package-lock.json', '.opencode/bun.lock')
+        for name in runtime_paths:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('runtime data\n')
+        self.assertEqual(self.verify(), ['docs/UPSTREAM.json', 'skills/example/SKILL.md'])
+        action.sync.write_tree(self.root, action.sync.files(self.stage / 'tree'))
+        patch = self.root / '.pstack/patch'
+        action.export(self.root, self.stage, self.original, patch)
+        self.assertNotIn(b'.opencode/', patch.read_bytes())
+        for name in runtime_paths:
+            self.assertEqual((self.root / name).read_text(), 'runtime data\n')
+
+    def test_opencode_configuration_and_skills_are_still_source(self):
+        for name in ('.opencode/opencode.json', '.opencode/skills/example/SKILL.md'):
+            with self.subTest(name=name):
+                path = self.root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('unexpected source\n')
+                with self.assertRaisesRegex(ValueError, 'Unexpected untracked'):
+                    self.verify()
+                path.unlink()
+
     def test_candidate_node_modules_are_rejected(self):
         path = self.stage / 'tree/skills/example/node_modules/pkg/index.js'
         path.parent.mkdir(parents=True)

@@ -46,7 +46,7 @@ def verify(root, stage, original, applied=False):
         raise ValueError('Upstream provenance differs from prepared target')
     untracked = sync.command('git', 'ls-files', '--others', '-z', cwd=root).decode().split('\0')
     for name in filter(None, untracked):
-        if any(part in sync.EXCLUDED for part in Path(name).parts):
+        if any(part in sync.EXCLUDED for part in Path(name).parts) or name in sync.RUNTIME_FILES:
             continue
         if name not in baseline['initial'] and not (applied and name in changed and allowed(name)):
             raise ValueError(f'Unexpected untracked source file: {name}')

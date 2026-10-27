@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-10-27T19:12:39Z	architecture	Use native skills, commands, and agents	Keep the portable workflow layout and replace the host contract	skills/opencode-runtime.md	Static checks pass
+2026-10-27T19:12:39Z	discovery	Wait for OpenCode discovery to warm	Initial API responses returned empty lists before the sources loaded	scripts/check-native.py	Native skills, commands, and agents observed
+2026-10-27T19:16:15Z	review	Remove generated commands for deleted skills	Independent review found stale commands after upstream deletions	scripts/test-generate-commands.py	Regression check passed
+2026-10-27T19:16:15Z	verify	Verify launcher and linked project discovery	Check both supported installation modes on the actual sibling artifact	docs/VERIFICATION.md	Native discovery passed; full statechart suite incomplete
+2026-10-27T19:22:53Z	correction	Replace launcher packaging with a native plugin	User requested a plugin for normal OpenCode	package.json	Earlier launcher installation results superseded
+2026-10-27T19:22:53Z	plugin	Register namespaced skills and commands without changing user settings	Avoid collisions with existing OpenCode configuration	index.js	Source and packed archive native checks passed
+2026-10-27T19:22:53Z	review	Independent review found no actionable issues	Check plugin registration and prompt forwarding	test/plugin.test.js	Same-model review passed; model-backed execution not tested

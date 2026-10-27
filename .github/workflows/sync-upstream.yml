@@ -1,0 +1,156 @@
+name: Sync upstream pstack
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  adapt:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    outputs:
+      publish: ${{ steps.export.outputs.publish }}
+      base_sha: ${{ steps.prepare.outputs.base_sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Preserve an existing review
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          count=$(gh pr list --state open --head automation/sync-upstream --json number --jq 'length')
+          echo "open=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Prepare upstream changes
+        if: steps.existing.outputs.open != 'true'
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/sync-upstream.py prepare
+          cp .pstack/upstream-sync/plan.json .pstack/prepared-plan.json
+          python3 scripts/sync-action.py detect
+          echo "base_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "plan_sha=$(sha256sum .pstack/prepared-plan.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "provenance_sha=$(sha256sum .pstack/upstream-sync/tree/docs/UPSTREAM.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/pstack-sync/scripts"
+          cp scripts/sync-action.py scripts/sync-upstream.py "$RUNNER_TEMP/pstack-sync/scripts/"
+      - name: Adapt for OpenCode
+        id: adapt
+        if: steps.prepare.outputs.has_changes == 'true'
+        uses: pullfrog/pullfrog@ad4283a862b8377cb525a0f5bf30f17c023b18ea # v0
+        with:
+          model: ${{ vars.UPSTREAM_SYNC_MODEL || 'openai/gpt-sol' }}
+          timeout: 20m
+          push: disabled
+          shell: restricted
+          progress_comments: disabled
+          prompt_file: .github/prompts/sync-upstream.md
+      - name: Save adaptation summary
+        if: always() && steps.adapt.outputs.result != ''
+        env:
+          SUMMARY: ${{ steps.adapt.outputs.result }}
+        run: printf '%s\n' "$SUMMARY" > .pstack/adaptation-summary.md
+      - name: Validate and apply reviewed candidate
+        if: steps.prepare.outputs.has_changes == 'true'
+        run: |
+          echo "${{ steps.prepare.outputs.plan_sha }}  .pstack/prepared-plan.json" | sha256sum --check
+          echo "${{ steps.prepare.outputs.provenance_sha }}  .pstack/upstream-sync/tree/docs/UPSTREAM.json" | sha256sum --check
+          python3 "$RUNNER_TEMP/pstack-sync/scripts/sync-action.py" apply --root "$GITHUB_WORKSPACE"
+          python3 scripts/check-plugin.py
+          python3 scripts/test-check-plugin.py
+          python3 scripts/test-sync-upstream.py
+          python3 scripts/test-sync-action.py
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: steps.prepare.outputs.has_changes == 'true'
+      - name: Check native plugin
+        if: steps.prepare.outputs.has_changes == 'true'
+        run: bun test test/plugin.test.js
+      - name: Install reviewed tool dependencies
+        if: steps.prepare.outputs.has_changes == 'true'
+        working-directory: skills/poteto-mode/scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Check reviewed tools
+        if: steps.prepare.outputs.has_changes == 'true'
+        working-directory: skills/poteto-mode/scripts
+        run: |
+          bun run test
+          bun run typecheck
+      - name: Export bounded update
+        if: steps.prepare.outputs.has_changes == 'true'
+        id: export
+        run: |
+          echo "${{ steps.prepare.outputs.plan_sha }}  .pstack/prepared-plan.json" | sha256sum --check
+          echo "${{ steps.prepare.outputs.provenance_sha }}  docs/UPSTREAM.json" | sha256sum --check
+          python3 "$RUNNER_TEMP/pstack-sync/scripts/sync-action.py" export --root "$GITHUB_WORKSPACE"
+          echo 'publish=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.export.outputs.publish == 'true'
+        with:
+          name: upstream-patch
+          path: .pstack/publication/upstream.patch
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upstream-sync-diagnostics
+          path: |
+            .pstack/upstream-sync/plan.json
+            .pstack/upstream-sync/conflicts/
+            .pstack/upstream-sync/tree/
+            !.pstack/upstream-sync/tree/**/node_modules/**
+            .pstack/prepared-plan.json
+            .pstack/adaptation-summary.md
+          include-hidden-files: true
+          retention-days: 7
+
+  publish:
+    needs: adapt
+    if: needs.adapt.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.adapt.outputs.base_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: upstream-patch
+          path: .pstack/publication
+      - name: Apply validated patch
+        run: git apply --check .pstack/publication/upstream.patch && git apply .pstack/publication/upstream.patch
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          token: ${{ github.token }}
+          branch: automation/sync-upstream
+          base: ${{ github.event.repository.default_branch }}
+          draft: true
+          title: 'chore: sync upstream pstack for OpenCode'
+          commit-message: 'chore: sync upstream pstack for OpenCode'
+          body: |
+            Updates upstream pstack changes and adapts them for OpenCode.
+
+            The automation resolved conflicts, checked compatibility, and ran package and bundled tool checks. Review the generated instructions before merging.
+
+            [Workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

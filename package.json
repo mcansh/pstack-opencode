@@ -1,0 +1,30 @@
+{
+  "name": "pstack-opencode",
+  "version": "0.1.0",
+  "description": "pstack engineering workflows for OpenCode v2.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "skills",
+    "agents",
+    "assets",
+    "docs",
+    "scripts",
+    ".opencode",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "bun test test/plugin.test.js",
+    "check": "python3 scripts/check-plugin.py",
+    "check:native": "python3 scripts/check-native.py"
+  },
+  "license": "MIT",
+  "author": "Lauren Tan",
+  "engines": {
+    "bun": ">=1.3.0"
+  }
+}

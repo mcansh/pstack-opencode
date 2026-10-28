@@ -17,6 +17,7 @@ The Principles section below grounds every trigger. In your reply, name each pri
 
 Remaining triggers:
 
+- Your first message on a task → tell the user, in your own words, their goal, the problem they are solving, and, if the task ships a change, the smallest change you expect to meet it. Don't wait for confirmation. If the evidence rules out the change the user asked for, show it and stop. Restate the user's goal in each subagent brief, and open each PR's `## Why` with it. Open each final report with it too, your final reply included, except after a fully specified one-line edit.
 - Nontrivial change, architecture decision, or "are we sure?" → the **how** skill.
 - About to `AskQuestion` on a "which approach", "how should I", or "what should this do" fork → classify it before you ask. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle. Under a full-autonomy grant, decide a call the grant covers, act on it, and report it, with no reply word and no offer. Under the grant, for a call only the operator can make, apply a default, report it with a full explanation, and say in plain words what the operator could tell you to do instead. The operator answers in their own words. Never give a shorthand token to type back. Gates the operator named and the Always-pause list in Autonomy still need the operator.
 - Any code → name the data shape first, and choose its organizing structure per **principle-model-the-domain**.
@@ -33,7 +34,7 @@ Remaining triggers:
 - Any PR-status request ("babysit this", "get it green", "address the bugbot comments", and most often "check on PR X" or "anything outstanding on X") → the **Babysit** playbook (`playbooks/babysit.md`). Never triggered by merely opening a PR. Declare its mode before polling. The playbook's step 1 owns the request-to-mode mapping. Reaching for `drive` inside a phase agent stops that agent finishing its turn.
 - Asked to land or ship a green stack → the **Shipping** playbook (`playbooks/shipping.md`). Green is not safe. Nothing gets armed before an independent per-PR verdict, and only the contiguous verified run from the root lands.
 - Bugbot or the agentic security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `references/bugbot-triage.md`.
-- Broken skill mid-task → fix it in its own PR. Don't block. Don't silently work around it.
+- Broken skill mid-task → report it and fix it only within the user's authorized scope. A separate PR still requires publication authority. Don't silently work around it.
 - Long, autonomous, or multi-phase work, or any task the user steps away from to review later ("going to bed", "trust it when i'm back", "/loop until X") → a decision trail via the **show-me-your-work** skill. Commit it when stakes need an auditable record. Keep it local otherwise.
 
 ## Principles
@@ -68,7 +69,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 - **Fix Root Causes.** Debugging. Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate.
 - **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
 - **Test Behavior, Not Implementation.** Writing, changing, or keeping a test. Assert what the code's users can observe, so the test fails when that behavior breaks and keeps passing when only the internals change.
-- **Explain the Number.** Before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
+- **Explain the Number.** Apply before you measure, and before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
 
 **Delegation**
 
@@ -81,19 +82,23 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 
 ## Autonomy
 
-**Just do it.** Use any MCP tool. Reversible work and external actions (team chat, ticket updates, kicking off evals) proceed without asking.
+**Just do it within scope.** Use only exposed tools permitted by OpenCode and the user's request. Installing or invoking this skill grants no authority to publish, merge, deploy, send messages, create issues, delete data, change configuration, or relax permissions. An explicit grant need not be requested again.
 
 **Always pause** for irreversible writes: force-push to shared branches, deploys, data deletion, customer messages.
 
-**Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going.
+**Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → continue within the authorized scope and a declared time or iteration budget. Checkpoint and stop on budget exhaustion or a permission blocker. Persistent work requires a separate authorized scheduler; local tasks do not survive server shutdown by promise.
 
 **No is an acceptable answer.** Asked whether to do something, invited to add scope, or shown an approach, reply with your real judgment. Decline, push back, or say "this doesn't earn its place" when true. A recommendation is a judgment, not a validation. Agreement is not the default, candor over sycophancy.
 
 ## Subagents
 
-Use `agents/poteto-agent.md` as the delegate prompt for code-writing and ad-hoc helpers. Give each delegate this skill's absolute path. This chat owns the playbook; delegates own scoped tasks, not the whole playbook. Routed skills may prescribe their own prompt templates.
+Use `agents/poteto-agent.md`, resolved from this package's root, as the delegate prompt for code-writing and ad-hoc helpers. It is a prompt template, not an agent the plugin registers. Use a suitable exposed general agent, or a user-configured named agent when available, with the actual delegation schema. Give each delegate this skill's absolute path and an explicit scope. This chat owns the playbook; delegates own scoped tasks, not the whole playbook. Routed skills may prescribe their own prompt templates.
 
-Follow the [OpenCode runtime contract](../opencode-runtime.md) for spawning, isolation, model choices, and capacity. Read `~/.config/pstack/opencode-models.md` if present. All roles default to `inherit-parent`. Use supported explicit overrides only when configured by the user. Independent same-model reviewers are useful but do not establish model diversity. If the session cannot delegate, execute sequentially and leave any independent-verification gate open.
+Follow the [OpenCode runtime contract](../opencode-runtime.md) for spawning, isolation, model choices, and capacity. Read `~/.config/pstack/opencode-models.md` if present. All roles default to `inherit-parent`, selecting the default delegate without a model override under native agent configuration. Use supported explicit overrides only when configured by the user. Independent same-model reviewers are useful but do not establish model diversity. If the session cannot delegate, execute sequentially and leave any independent-verification gate open.
+
+**Defaults for every delegation call.** Use asynchronous execution only if the exposed tool supports it. Prefer file pointers to bulk context. Set a read-only scope for reviewers without assuming a particular MCP policy or a `readonly` flag. Give writers exclusive files or separate worktrees; a task call does not create isolation. Role choices come from the on-demand map, not automatic configuration writes.
+
+**Match the model to the job.** Hard or subtle work merits a configured higher-reasoning agent; routine work can use a cheaper configured agent. Fast execution is a preference for urgent work, not a generated model suffix. Keep verification on its configured `swarm workers` role. Reasoning, speed, and model families are native agent settings; never mutate model IDs or pass unsupported task arguments. Report a rejected agent once and use only an allowed configured fallback, or the default delegate with reduced diversity disclosed. A required different-family gate stays unverified when no qualifying agent is available.
 
 You own every subagent's work. Review the diff and write your own summary, don't pass through what it said. A second opinion is the same prompt against a different model. Agreement is high-signal.
 
@@ -140,9 +145,9 @@ A large or cross-cutting effort (a migration across many call sites, an ambitiou
 - **Autonomous run.** A long task to drive to completion without stopping ("run until done", "/loop until X").
 - **Orchestrate.** A standing project handed to one coordinator chat: multi-day, many stacked PRs, dozens to hundreds of subagents, minimal human turns ("run this whole project", "own this migration until it lands"). Distinct from Autonomous run, which drives one task to a predicate. Work one agent could finish inside the session's budget routes there, not here, however program-shaped the phrasing sounds.
 - **Autopilot-full.** A queue of independent PRs run to merged with full autonomy. One owner per PR carries build through merge, and the root swarm-verifies each PR before its owner merges ("autopilot this queue", "full autopilot", one-owner-per-PR programs).
-- **Autopilot-stack.** A queue of changes built and verified with full autonomy, delivered as one linear reviewed base-branch stack the operator lands ("autopilot-stack", "stack them, don't ship", "build the stack, I'll land it").
+- **Autopilot-stack.** Autopilot-full without the merge. A queue of PRs built and verified with full autonomy, then handed to the operator to land. A PR stacks only on a PR it builds on ("autopilot-stack", "autopilot, don't merge", "stack them, don't ship", "build the stack, I'll land it").
 - **Session pickup.** Resuming or taking over a prior agent's in-flight work from a transcript, cloud-agent URL, or pushed branch.
 - **Pause safely.** Suspending in-flight work cleanly so it can be resumed, on an explicit pause, going offline, an OpenCode restart, or imminent context compaction. The complement to Session pickup.
 - **Multi-phase or multi-PR plan.** Work that spans phases or stacked PRs. File: `playbooks/multi-phase-plan.md`.
 - **Worktree and simulator cleanup.** Reclaiming local disk by pruning merged or abandoned git worktrees and stale iOS simulators ("what's using my disk", "clean up worktrees", "prune safe-to-prune worktrees", "free up space", "delete old simulators"). File: `playbooks/worktree-cleanup.md`.
-- **Opening a PR.** Invoked at the end of every other playbook.
+- **Opening a PR.** Invoked after another playbook only when the user's request authorizes publication.

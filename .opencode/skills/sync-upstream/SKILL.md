@@ -1,6 +1,8 @@
 ---
 name: sync-upstream
 description: Fetch upstream cursor/plugins pstack changes and adapt them for this OpenCode fork. Use in the pstack-opencode source repository when asked to sync or update from upstream.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Sync upstream pstack

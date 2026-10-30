@@ -73,8 +73,7 @@ with tempfile.TemporaryDirectory(prefix='pstack-native-') as tmp:
         for name in expected_skills:
             assert Path(skills[name]['path']).resolve() == root / f'skills/{name.removeprefix("pstack-")}/SKILL.md', name
             assert 'OpenCode runtime contract' in skills[name]['content'], name
-            if 'opencode/autoinvoke: false' in (root / f'skills/{name.removeprefix("pstack-")}/SKILL.md').read_text():
-                assert skills[name]['autoinvoke'] is False, name
+            assert skills[name]['autoinvoke'] is False, name
         assert 'existing-user-command' in commands
         assert agents['existing-user-agent']['system'] == 'Existing prompt'
         print(f'Native pstack plugin loaded through plugins configuration. Verified {len(expected_skills)} skills and {len(expected_commands)} commands; existing user agent and command preserved.')

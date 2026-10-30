@@ -1,6 +1,8 @@
 ---
 name: setup-pstack
 description: Configure pstack roles using registered OpenCode agents and their supported models. Use for setup, model choices, or cost changes.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Setup pstack for OpenCode

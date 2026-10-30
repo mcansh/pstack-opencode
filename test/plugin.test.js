@@ -14,6 +14,7 @@ test("registers bundled skills and commands while preserving prompt attachments 
   expect(new Set(skills.map((skill) => skill.id)).size).toBe(skills.length);
   expect(commands.map((command) => command.name)).toContain("pstack:poteto-help");
   expect(commands.some((command) => command.name.startsWith("pstack:principle-"))).toBe(false);
+  expect(skills.filter((skill) => skill.autoinvoke !== false).map((skill) => skill.id)).toEqual([]);
   const poteto = skills.find((skill) => skill.id === "pstack-poteto-mode");
   expect(poteto.autoinvoke).toBe(false);
   expect(await readFile(poteto.path, "utf8")).toContain(poteto.content);

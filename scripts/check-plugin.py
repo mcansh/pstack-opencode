@@ -34,6 +34,7 @@ for path in [*skills, *repository_skills]:
     frontmatter = text.split('---', 2)[1]
     assert re.search(r'^name: ' + re.escape(path.parent.name) + r'$', frontmatter, re.MULTILINE), path
     assert re.search(r'^description: .+', frontmatter, re.MULTILINE), path
+    assert re.search(r'^  opencode/autoinvoke: false$', frontmatter, re.MULTILINE), path
     if path in skills:
         assert '../opencode-runtime.md' in text, path
 for path in (p for p in (ROOT / 'skills').rglob('*.md') if 'node_modules' not in p.parts):

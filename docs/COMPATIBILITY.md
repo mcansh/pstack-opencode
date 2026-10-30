@@ -10,7 +10,7 @@ This package is a native OpenCode v2 server plugin with ID `pstack`. Load it thr
 | Models | Existing OpenCode agent settings control model choices. Role maps are read on demand. |
 | Permissions | Existing OpenCode permissions remain authoritative. |
 | History | Active or explicitly supplied in-scope history only. |
-| Portable helpers | Worktree audit, orchestration ledger, PR watch, statechart, and upstream staging remain bundled. |
+| Portable helpers | Worktree audit, PR watch, statechart, and upstream staging remain bundled. |
 | Cloud and scheduling | Require separate host capabilities. |
 
 The plugin does not change default agents, providers, permissions, or user configuration files. Skills use `pstack-` IDs and commands use `pstack:` names to avoid collisions with unrelated registrations. Cursor services and hosted Codex subscription automation are not implemented.

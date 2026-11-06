@@ -60,6 +60,8 @@ Enable **Allow GitHub Actions to create and approve pull requests** in repositor
 
 [Check plugin](.github/workflows/check.yml) runs package, plugin registration, synchronization, and workflow policy checks on pushes to `main` and pull requests.
 
+[Pullfrog](.github/workflows/pullfrog.yml) is the on-demand agent workflow. It runs only on `workflow_dispatch`. It does not replace [Sync upstream pstack](.github/workflows/sync-upstream.yml).
+
 ## Upstream
 
 Use the repository's [sync-upstream skill](.opencode/skills/sync-upstream/SKILL.md) to stage and review updates from `cursor/plugins`. Keep the runtime contract and plugin API adaptations when merging. [PORT.json](docs/PORT.json) records the Codex source revision; [UPSTREAM.json](docs/UPSTREAM.json) retains original pstack provenance. The [historical upstream guide](docs/upstream/README.md) describes Cursor.

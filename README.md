@@ -58,7 +58,7 @@ The automation uses the same Pullfrog ChatGPT/Codex subscription integration as 
 
 Enable **Allow GitHub Actions to create and approve pull requests** in repository Actions settings. The adaptation job has read-only source access and restricted agent pushes. A separate publishing job can create the bounded update PR after validation.
 
-[Check plugin](.github/workflows/check.yml) runs package, plugin registration, synchronization, and workflow policy checks on pushes to `main` and pull requests.
+[Check plugin](.github/workflows/check.yml) runs package, plugin registration, synchronization, and workflow policy checks on pushes to `main` and pull requests. Check and sync jobs run on this repository's self-hosted Mac runner (`self-hosted`, `macOS`, `ARM64`). Checksums use `shasum`, which is present on that machine.
 
 ## Upstream
 

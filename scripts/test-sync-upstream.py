@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Exercise sync using a local upstream and isolated OpenCode checkout."""
 import importlib.util
+import io
 import json
+import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -242,6 +245,53 @@ class SyncTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'authenticate with gh auth login'):
             sync.command(sys.executable, '-c',
                          'import sys; sys.stderr.write("authenticate with gh auth login"); sys.exit(1)')
+
+    def test_github_api_puts_the_token_in_a_header(self):
+        captured = {}
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        class Opener:
+            def open(self, request, timeout=None):
+                captured['authorization'] = request.get_header('Authorization')
+                captured['url'] = request.full_url
+                return Response(b'{}')
+
+        with patch.dict(os.environ, {'GH_TOKEN': 'sent-in-header', 'GITHUB_TOKEN': ''}):
+            with patch.object(sync.urllib.request, 'build_opener', return_value=Opener()):
+                self.assertEqual(sync.github_api('repos/cursor/plugins/commits/main'), b'{}')
+        self.assertEqual(captured['authorization'], 'Bearer sent-in-header')
+        self.assertNotIn('sent-in-header', captured['url'])
+
+    def test_github_api_requires_a_token(self):
+        with patch.dict(os.environ, {'GH_TOKEN': '', 'GITHUB_TOKEN': ''}):
+            with self.assertRaisesRegex(ValueError, 'GH_TOKEN'):
+                sync.github_api('repos/cursor/plugins/commits/main')
+
+    def test_archive_downloads_upstream_without_gh(self):
+        payload = io.BytesIO()
+        with tarfile.open(fileobj=payload, mode='w') as tar:
+            data = b'hello\n'
+            info = tarfile.TarInfo('cursor-plugins-abc/pstack/LICENSE')
+            info.size = len(data)
+            info.mode = 0o644
+            tar.addfile(info, io.BytesIO(data))
+        responses = [json.dumps({'sha': 'a' * 40}).encode(), payload.getvalue()]
+
+        def fake(path):
+            self.assertNotIn(' ', path)
+            return responses.pop(0)
+
+        with patch.object(sync, 'github_api', side_effect=fake):
+            sha, tree = sync.archive(None, 'main')
+        self.assertEqual('a' * 40, sha)
+        self.assertEqual(b'hello\n', tree['LICENSE'][0])
+        self.assertEqual([], responses)
 
     def test_archive_rejects_symlinks(self):
         (self.source / 'pstack/agents').mkdir()

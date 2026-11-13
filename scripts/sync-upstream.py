@@ -4,12 +4,16 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import stat
 import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +28,37 @@ def command(*args, cwd=None):
     except subprocess.CalledProcessError as error:
         details = (error.stderr or error.stdout or b'').decode(errors='replace').strip()
         raise ValueError(f'Command {args!r} failed (exit {error.returncode}): {details or "no diagnostic output"}') from error
+
+
+class _StripAuthRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and urllib.parse.urlsplit(req.full_url).netloc != urllib.parse.urlsplit(redirected.full_url).netloc:
+            redirected.remove_header('Authorization')
+        return redirected
+
+
+def github_api(path):
+    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    if not token:
+        raise ValueError('Set GH_TOKEN or GITHUB_TOKEN to read upstream from GitHub')
+    request = urllib.request.Request(
+        'https://api.github.com/' + path.lstrip('/'),
+        headers={
+            'Accept': 'application/vnd.github+json',
+            'Authorization': 'Bearer ' + token,
+            'User-Agent': 'pstack-sync-upstream',
+            'X-GitHub-Api-Version': '2022-11-28',
+        },
+    )
+    opener = urllib.request.build_opener(_StripAuthRedirect)
+    try:
+        with opener.open(request, timeout=60) as response:
+            return response.read()
+    except urllib.error.HTTPError as error:
+        raise ValueError(f'GitHub API {path} failed (HTTP {error.code})') from error
+    except urllib.error.URLError as error:
+        raise ValueError(f'GitHub API {path} failed ({error.reason})') from error
 
 
 def safe_path(name):
@@ -84,8 +119,10 @@ def archive(source, ref):
         sha = command('git', 'rev-parse', '--verify', f'{ref}^{{commit}}', cwd=source).decode().strip()
         raw = command('git', 'archive', f'{sha}:pstack', cwd=source)
     else:
-        sha = json.loads(command('gh', 'api', f'repos/cursor/plugins/commits/{ref}'))['sha']
-        raw = command('gh', 'api', f'repos/cursor/plugins/tarball/{sha}')
+        sha = json.loads(github_api(f'repos/cursor/plugins/commits/{urllib.parse.quote(ref, safe="")}'))['sha']
+        if not re.fullmatch(r'[a-f0-9]{40}', sha):
+            raise ValueError('Upstream did not resolve to an immutable commit')
+        raw = github_api(f'repos/cursor/plugins/tarball/{sha}')
     if not re.fullmatch(r'[a-f0-9]{40}', sha):
         raise ValueError('Upstream did not resolve to an immutable commit')
     result = {}

@@ -2,33 +2,16 @@
 
 Use after another playbook only when the user's request authorizes publication. Completion of local work is not permission to commit, push, or open a PR.
 
-**Worktree.** Give each writer an exclusive worktree and pass its absolute path explicitly. Verify the delegate's working directory; delegation alone does not create isolation. Preserve dirty and unrelated work. Never reset, discard, or transplant it to make this workflow run. Report a blocker when safe isolation is unavailable.
+Work from an exclusive git worktree off trunk, and keep unrelated work out of it. Pass its absolute path to writers and verify their working directory; delegation does not create isolation. Preserve dirty and unrelated work. Never reset or discard it to make this workflow run.
 
-**Commits.** Commit only when authorized. Prefer small, ordered commits. Rewriting or amending existing history requires explicit authority and must preserve other writers' work. Commit bodies don't restate the subject.
+Commit only when authorized. Prefer small, landable commits. Rebasing, amending, or rewriting existing history requires the necessary authority and must preserve other writers' work. Run a diff simplification review per the OpenCode runtime contract before commit and **no-comments** before review. Apply **technical-writing** and **unslop** to the PR text and commit bodies.
 
-**PRs.** Review the diff for unnecessary code before commit and `/no-comments` before review. Write every PR title, description, and commit body with `/technical-writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/unslop`.
+Title: `type(scope): subject`, naming a real symbol when one carries the change. Body: a one-minute briefing under 40 lines with these `##` headings in order, dropping empty ones: `## Why`, `## What changed`, `## Scope`, `## Tradeoffs` (only rejected alternatives a reviewer would otherwise ask about), `## Blast Radius`, `## Verification`. Evidence logs, histories, and long tables go in a linked artifact, not the body.
 
-**Titles.** Conventional Commits `type(scope): subject`, no trailing period. Type such as `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf`. Scope is the area, such as `pstack` or `poteto-mode`. Subject is short, imperative, and names a real symbol when one carries the change, for example `fix(pstack): retarget opening-a-pr babysit trigger`.
+Resolve the forge before the first PR operation and keep that choice. Use required host PR tools for the operations they cover. Otherwise use `gh` by default, or `origin pr` when Origin's CLI resolves the repository. Never require Graphite (`gt`).
 
-**Descriptions.** The PR body is a one-minute briefing, not a lab notebook, for a reviewer who has the diff. It says why the change exists, what it leaves out, what it could break, and how you proved it works. Write short, simple sentences with few identifiers, no walls of text. The body becomes the squash commit body, so keep that commit under about 40 lines. Use `##` headings, not bold lead-ins, in this order, and drop a section with nothing to say:
+Stack follow-ups by base branch. The root targets trunk; a dependent child targets its parent's branch. Branch from trunk for independent work. Coordinate stack mutations with the exclusive branch owner. Every changed head needs fresh CI and verification against its current base.
 
-- `## Why`: the problem and approach, 1–3 short sentences. No SHAs, rebase genealogy, or "based on main" preamble.
-- `## What changed`: 1–3 short bullets. Name a real symbol or path only when it carries the change. Name both sides of a rename or retarget.
-- `## Scope`: always. 1–3 short items on what it covers and what it deliberately leaves out (a follow-up, a known gap). No symbols, paths, or file-by-file essay.
-- `## Tradeoffs`: only rejected alternatives a reviewer would otherwise ask about. Skip when there was no real choice.
-- `## Blast Radius`: 1–2 sentences on who or what it touches and why that is safe or risky. If main is red, state the cost of leaving it red.
-- `## Verification`: 1–3 bullets, each a real run path and its outcome. Perf: one primary number with its unit, `before → after`, and a link to the arena or swarm directory for the rest. No sample-size methodology, swarm recitals, or metric tables.
+Open PRs ready by default when publication is authorized, but preserve an explicit user request for a draft and any repository policy. Inspect the actual PR-tool schema rather than assuming it accepts `draft`. When it does, use `draft: false` for ready and `draft: true` for a requested draft. Without a host tool, use `gh pr create` without `--draft`, or `origin pr create --status open`, for ready. Never mark an existing draft ready without authority. Read back the actual PR status before reporting it.
 
-After the sections, attach videos or screenshots when they prove a claim. Full SHAs, swarm or arena lane recitals, lever-correction essays, file-by-file checklists, and "CLEAN" verdicts go in a linked artifact, not the body.
-
-**Forge.** Resolve the forge before the first PR operation and keep that choice for create, edit, view, watch, and merge. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, prefer `origin pr ...`. If Origin is absent or cannot resolve the repository, stay on `gh` and record the fallback. Do not require Graphite (`gt`).
-
-**Built-in PR tool.** When the run provides a built-in PR tool, create, edit, retarget, and mark ready through it, never through a forge CLI. A CLI-made PR misses what the tool tracks. Use the resolved forge for everything the tool does not cover, and for every PR operation when the run has no such tool.
-
-**Size and stacks.** Prefer five narrow PRs to one large PR. A stack is a base-branch chain. The root PR targets trunk. Each child branch rebases onto its parent's exact tip and its PR targets the parent branch. As a parent merges, move its child onto trunk per `playbooks/shipping.md` step 4. Without a built-in PR tool, per the resolved forge, create a child with `origin pr create --status open --base <parent-branch>` or `gh pr create --base <parent-branch>`, and retarget one with `origin pr edit <pr> --base <parent-branch>` or `gh pr edit <pr> --base <parent-branch>`. Branch from trunk only for independent work. Rebase on trunk before substantial stack work.
-
-**Readiness.** Preserve the user's requested draft or ready state. Inspect the actual PR-tool schema rather than assuming it accepts `draft`. When no state was requested, use the repository convention. Do not mark a draft ready without authority. Verify actual PR status through the exposed tool or resolved forge before reporting it.
-
-**Babysit.** Opening a PR does not start a babysit. Post the URL and keep building. Finish the phase or stack first. Run a separate babysit pass only when the user asks for one after the whole stack exists. A babysit for each new PR stalls the build and spends checks on commits later waves restart. Push back when feedback drifts from intent.
-
-A subagent authorized to open a PR simplifies its diff and loads `pstack-no-comments`, then reports the URL. It returns to the parent without babysitting, unless it is an Autopilot-full or Autopilot-stack owner. That owner's brief assigns a bounded babysit loop and is the ask `playbooks/babysit.md` waits for. The owner starts the loop after its code-ready report, reports merge-ready, and is exempt from the rules here and in `playbooks/babysit.md` that hold babysitting until a whole stack is built.
+Opening a PR does not start a babysit. Return the URL and keep building the authorized work. An Autopilot owner's brief may separately authorize a bounded babysit loop after its code-ready report, subject to `playbooks/babysit.md`. Babysitting itself never rebases or force-pushes.

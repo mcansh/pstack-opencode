@@ -30,11 +30,11 @@ Present the framing and tradeoffs before committing to a long run. Reversible wo
 Decompose into atomic, independently-landable units. Sequence riskiest-unknown-first. Scaffold and verification come before features (the **foundational-thinking** principle skill).
 
 - Build the verification harness before the work, with the baseline captured from the pre-change state, so the check reads as "old value vs new value".
-- For one-way-door design decisions, run the **architect** skill (it runs **arena**). Skip it for mechanical work whose shape is already concrete. A second arena over a settled design is over-engineering (the **laziness-protocol** principle skill).
-- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.
+- For one-way-door design decisions, run the **architect** skill (it uses **arena** for large or contested designs). Skip it for mechanical work whose shape is already concrete. A second arena over a settled design is over-engineering (the **laziness-protocol** principle skill).
+- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level for the job, per the Subagents section of the **poteto-mode** skill.
 - Write the designed phase list down. That list is what the human reviews.
 
-Then execute the design. Add its steps to the todolist as concrete items between the Phase C and Phase D entries. Run each under the Phase C loop discipline, and weave the Phase D log through them, a row as each step lands, rather than saving the whole trail for the end.
+Execute the design only within the user's actual grant; a plan-only request stops at the plan until explicit go. Add authorized steps to the todolist as concrete items between the Phase C and Phase D entries. Run each under the Phase C loop discipline within a declared finite session budget, and weave the Phase D log through them, a row as each step lands, rather than saving the whole trail for the end. Use project-local gitignored `.pstack/` for durable progress when no store is supplied. Remote execution and persistence beyond the session require separate exposed, documented, authorized services. Checkpoint on budget exhaustion or a permission blocker.
 
 ## Phase C: Run the loop
 

@@ -67,14 +67,14 @@ Correct the log, not the story. The audit never edits or removes a row, even an 
 
 ## Cross-model review of the trail
 
-Before handing back, spawn a subagent on a different model family from the one that did the work. Self-review is not a substitute. The subagent reads the audit trail and the run's transcript, then flags what the user should pay attention to. Not a redo of the work, a scan for what's suboptimal or risky. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.
+Before handing back, use an exposed configured agent whose model family and vendor are known to differ from the one that did the work, subject to delegation permissions and host capacity. Self-review is not a substitute. If no qualifying agent is available, mark the independent cross-vendor review unverified; never invent a model or silently substitute a provider. Give the reviewer only the audit trail and active or explicitly supplied in-scope transcript. If a transcript is unavailable, report the coverage gap. The subagent flags what the user should pay attention to. Not a redo of the work, a scan for what's suboptimal or risky. Select only supported native agent settings per the Subagents section of the **poteto-mode** skill.
 
 - Decisions logged with weak or absent evidence.
 - Verification steps skipped or claimed without proof in the transcript.
 - Choices that look risky in hindsight (premature, scope-creeping, papering over a symptom).
 - Gaps the user would otherwise miss on a casual skim.
 
-Every reply for a run that produced a trail ends with an "Attention" section. Lead with the reviewer's model on its own line (`reviewed by <model>`), then list each flag pointing to specific rows or moments. "No flags" is a valid value. The model name is not.
+Every reply for a run that produced a trail ends with an "Attention" section. Lead with the reviewer's known model on its own line (`reviewed by <model>`), then list each flag pointing to specific rows or moments. When no qualifying reviewer ran, write `cross-vendor review unverified` and the reason instead of inventing a model or saying "No flags". Otherwise "No flags" is a valid value.
 
 ## Reviewing the trail
 

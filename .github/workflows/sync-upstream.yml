@@ -2,7 +2,8 @@ name: Sync upstream pstack
 
 on:
   schedule:
-    - cron: '17 */2 * * *'
+    - cron: "0 */4 * * *"
+      timezone: America/Detroit
   workflow_dispatch:
 
 permissions: {}
@@ -28,33 +29,7 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - name: Preserve an existing review
-        id: existing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          python3 - << 'PY'
-          import json, os, urllib.request
-          token = os.environ["GH_TOKEN"]
-          repo = os.environ["GH_REPO"]
-          owner = repo.split("/", 1)[0]
-          request = urllib.request.Request(
-              f"https://api.github.com/repos/{repo}/pulls?state=open&head={owner}:automation/sync-upstream",
-              headers={
-                  "Accept": "application/vnd.github+json",
-                  "Authorization": "Bearer " + token,
-                  "User-Agent": "pstack-sync-upstream",
-                  "X-GitHub-Api-Version": "2022-11-28",
-              },
-          )
-          with urllib.request.urlopen(request, timeout=60) as response:
-              count = len(json.load(response))
-          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-              output.write("open=" + ("true" if count else "false") + "\n")
-          PY
       - name: Prepare upstream changes
-        if: steps.existing.outputs.open != 'true'
         id: prepare
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,12 +134,14 @@ jobs:
         run: git apply --check .pstack/publication/upstream.patch && git apply .pstack/publication/upstream.patch
       - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
-          token: ${{ github.token }}
           branch: automation/sync-upstream
+          token: ${{ github.token }}
           base: ${{ github.event.repository.default_branch }}
-          draft: true
-          title: 'chore: sync upstream pstack for OpenCode'
-          commit-message: 'chore: sync upstream pstack for OpenCode'
+          draft: false
+          signoff: true
+          sign-commits: true
+          title: "chore: sync upstream pstack for OpenCode"
+          commit-message: "chore: sync upstream pstack for OpenCode"
           body: |
             Updates upstream pstack changes and adapts them for OpenCode.
 

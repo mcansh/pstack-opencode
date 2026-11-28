@@ -13,6 +13,7 @@ For a help request, read [README](../../README.md) and answer without starting t
 
 - Setup and role models: [setup-pstack](../setup-pstack/SKILL.md).
 - Rewrite a prompt before sending it: [sharpen](../sharpen/SKILL.md). Returns a deeper prompt with expert methods, raw sources, and an outside check. The rewrite asks for experiments to settle empirical choices while leaving product and preference decisions to the user; it does not execute the task.
+- Find the expert words for what you're building: [`/pstack:reframe`](../reframe/SKILL.md). Checks sources where accessible, borrows useful terms from neighboring fields, and rewrites your description without doing the task.
 - Understand code or rationale: [how](../how/SKILL.md), [why](../why/SKILL.md). How uses one read-only delegate when available. Why starts with commits and PR discussions and widens the search when that trail is thin.
 - Design alternatives: [architect](../architect/SKILL.md), [arena](../arena/SKILL.md). Architect sketches two shapes, using Arena for large or contested designs.
 - Review and impact: [interrogate](../interrogate/SKILL.md), [blast-radius](../blast-radius/SKILL.md). Interrogate keeps findings proven by rerunning safe repros, lists dropped findings, and applies no fixes.
